@@ -4,15 +4,16 @@ import (
 	"fmt"
 	"go-rest-setup/src/database/models"
 	"log"
+	"time"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+// var DB *gorm.DB
 
 func createIndexSoftDelete(db *gorm.DB) {
-	if err := DB.AutoMigrate(&models.User{}); err != nil {
+	if err := db.AutoMigrate(&models.User{}); err != nil {
 		log.Fatal("AutoMigrate failed:", err)
 	}
 
@@ -31,7 +32,7 @@ func createIndexSoftDelete(db *gorm.DB) {
 	log.Println("Create Index Completed")
 }
 
-func InitDatabase() {
+func InitDatabase() *gorm.DB {
 	c := EnvModule()
 
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
@@ -47,11 +48,18 @@ func InitDatabase() {
 		log.Fatal("failed to connect database:", err)
 	}
 
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatalf("❌ Failed to get generic DB object: %v", err)
+	}
+
+	sqlDB.SetMaxIdleConns(10)
+	sqlDB.SetMaxOpenConns(100)
+	sqlDB.SetConnMaxLifetime(30 * time.Minute)
+
 	if err := db.AutoMigrate(&models.User{}); err != nil {
 		log.Fatalf("failed to migrate: %v", err)
 	}
-
-	DB = db
-
 	createIndexSoftDelete(db)
+	return db
 }

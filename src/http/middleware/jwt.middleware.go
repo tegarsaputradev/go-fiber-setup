@@ -9,9 +9,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	jwtware "github.com/gofiber/jwt/v3"
 	"github.com/golang-jwt/jwt/v4"
+	"github.com/redis/go-redis/v9"
 )
 
-func JwtProtected() fiber.Handler {
+func JwtProtected(redis *redis.Client) fiber.Handler {
 	return jwtware.New(jwtware.Config{
 		SigningKey:    []byte(config.EnvModule().JWT.Secret),
 		ContextKey:    "user",
@@ -32,7 +33,7 @@ func JwtProtected() fiber.Handler {
 			claims := user.Claims.(jwt.MapClaims)
 			userID := fmt.Sprintf("%v", claims["user_id"])
 
-			sval, err := config.RedisClient.Get(ctx, fmt.Sprintf("AUTH:%s", userID)).Result()
+			sval, err := redis.Get(ctx, fmt.Sprintf("AUTH:%s", userID)).Result()
 			if err != nil || sval != userToken {
 				return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 					"status_code": fiber.StatusUnauthorized,

@@ -11,13 +11,13 @@ import (
 )
 
 func main() {
-	config.InitDatabase()
-	config.InitRedis()
+	db := config.InitDatabase()
+	redis := config.InitRedis()
 
 	app := fiber.New()
 
-	routes.RegisterBackofficeRoutes(app, appbackoffice.NewBackofficeContainer())
-	routes.RegisterAuthRoutes(app, auth.NewController(auth.NewService()))
+	routes.RegisterBackofficeRoutes(app, appbackoffice.NewBackofficeContainer(db, redis))
+	routes.RegisterAuthRoutes(app, auth.NewController(auth.NewService(db, redis)))
 
 	if err := app.Listen(":" + config.EnvModule().Server.Port); err != nil {
 		log.Fatalf("server failed: %v", err)

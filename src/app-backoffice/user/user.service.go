@@ -3,20 +3,23 @@ package user
 import (
 	userDto "go-rest-setup/src/app-backoffice/user/dto"
 	"go-rest-setup/src/database/models"
-	config "go-rest-setup/src/lib/configs"
 
 	"gorm.io/gorm"
 )
 
-type UserService struct{}
+type UserService struct {
+	DB *gorm.DB
+}
 
-func NewService() *UserService {
-	return &UserService{}
+func NewService(db *gorm.DB) *UserService {
+	return &UserService{
+		DB: db,
+	}
 }
 
 func (s *UserService) GetAll() ([]models.User, error) {
 	var users []models.User
-	if err := config.DB.Find(&users).Error; err != nil {
+	if err := s.DB.Find(&users).Error; err != nil {
 		return nil, err
 	}
 	return users, nil
@@ -30,7 +33,7 @@ func (s *UserService) Create(payload userDto.CreateUserDto) (*models.User, error
 		Password: payload.Password,
 	}
 
-	if err := config.DB.Create(user).Error; err != nil {
+	if err := s.DB.Create(user).Error; err != nil {
 		return nil, err
 	}
 
@@ -40,7 +43,7 @@ func (s *UserService) Create(payload userDto.CreateUserDto) (*models.User, error
 func (s *UserService) FindOne(condition map[string]interface{}, relations []string) (*models.User, error) {
 	var user models.User
 
-	query := config.DB.Model(&models.User{})
+	query := s.DB.Model(&models.User{})
 	for _, v := range relations {
 		query = query.Preload(v)
 	}
@@ -56,7 +59,7 @@ func (s *UserService) FindOneById(id uint) (*models.User, error) {
 }
 
 func (s *UserService) SoftDelete(id uint) error {
-	result := config.DB.Delete(&models.User{}, id)
+	result := s.DB.Delete(&models.User{}, id)
 	if result.Error != nil {
 		return result.Error
 	}

@@ -9,6 +9,6 @@ import (
 )
 
 func RegisterBackofficeRoutes(app *fiber.App, container *appbackoffice.BackofficeContainer) {
-	backoffice := app.Group(`/api/v1/backoffice`, middleware.JwtProtected())
+	backoffice := app.Group(`/api/v1/backoffice`, middleware.JwtProtected(container.RedisClient))
 	user.RegisterRoutes(backoffice, container.UserController)
 }
