@@ -1,0 +1,23 @@
+# === Editor / IDE ===
+.vscode/
+.idea/
+*.swp
+
+# === Config / Env files ===
+.env
+.env.local
+.env.*
+!.env.example
+
+vendor/
+# === Go build ===
+/bin/
+/build/
+/dist/
+/tmp/
+*.exe
+*.out
+*.test
+
+# === Go modules ===
+vendor/
