@@ -45,3 +45,37 @@ func (s *AuthController) Login(ctx *fiber.Ctx) error {
 	return helper.Success(ctx, responseData, fiber.StatusAccepted)
 
 }
+
+func (s *AuthController) GetMe(ctx *fiber.Ctx) error {
+	userID, err := ctx.ParamsInt("id")
+	if err != nil || userID <= 0 {
+		return helper.Error(ctx, fiber.StatusBadRequest, map[string]string{"id": "invalid user ID"})
+	}
+	user, errGet := s.authService.GetMe(uint(userID))
+	if errGet != nil {
+		if errGet.Error() == "session not found or already loged out" {
+			return helper.Error(ctx, fiber.StatusNotFound, map[string]string{"session": "session not found or already loged out"})
+		}
+		return helper.Error(ctx, fiber.StatusInternalServerError, errGet)
+	}
+	return helper.Success(ctx, user, fiber.StatusOK)
+}
+
+func (s *AuthController) Logout(ctx *fiber.Ctx) error {
+	userID, err := ctx.ParamsInt("id")
+	if err != nil || userID <= 0 {
+		return helper.Error(ctx, fiber.StatusBadRequest, map[string]string{
+			"id": "invalid user ID",
+		})
+	}
+
+	if err := s.authService.Logout(uint(userID)); err != nil {
+		return helper.Error(ctx, fiber.StatusUnauthorized, map[string]string{
+			"logout": err.Error(),
+		})
+	}
+
+	return helper.Success(ctx, fiber.Map{
+		"message": "Logged out successfully",
+	}, fiber.StatusOK)
+}

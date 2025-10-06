@@ -62,3 +62,33 @@ func (s *AuthService) Login(payload authDto.LoginUsernameDto) (string, *models.U
 	return token, user, nil
 
 }
+
+func (s *AuthService) GetMe(id uint) (*models.User, error) {
+	ctx := context.Background()
+	key := fmt.Sprintf(`AUTH:%d`, id)
+
+	userSession, err := config.RedisClient.Get(ctx, key).Result()
+	if err != nil || userSession == "" {
+		return nil, fmt.Errorf("session not found or already loged out")
+	}
+
+	var user models.User
+
+	if err := config.DB.Where("id = ?", id).First(&user).Error; err != nil {
+		return nil, fmt.Errorf("session is anonymous")
+	}
+
+	return &user, nil
+
+}
+
+func (s *AuthService) Logout(id uint) error {
+	ctx := context.Background()
+	key := fmt.Sprintf("AUTH:%d", id)
+
+	if err := config.RedisClient.Del(ctx, key).Err(); err != nil {
+		return fmt.Errorf("failed to delete session: %v", err)
+	}
+
+	return nil
+}
