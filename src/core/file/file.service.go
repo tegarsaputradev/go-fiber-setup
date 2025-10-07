@@ -14,15 +14,18 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 type FileService struct {
 	config *config.Config
+	db     *gorm.DB
 }
 
-func NewFileService() *FileService {
+func NewFileService(db *gorm.DB) *FileService {
 	return &FileService{
 		config: config.EnvModule(),
+		db:     db,
 	}
 }
 
@@ -115,6 +118,10 @@ func (s *FileService) Upload(ctx context.Context, fileHeader *multipart.FileHead
 		MimeType:     fileHeader.Header.Get("Content-Type"),
 		Size:         fileHeader.Size,
 		URL:          url,
+	}
+
+	if err := s.db.Create(&file).Error; err != nil {
+		return nil, fmt.Errorf("failed to save file record: %w", err)
 	}
 
 	return file, nil
