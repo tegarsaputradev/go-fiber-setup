@@ -3,6 +3,7 @@ package main
 import (
 	appbackoffice "go-rest-setup/src/app-backoffice"
 	"go-rest-setup/src/auth"
+	"go-rest-setup/src/core/audit"
 	"go-rest-setup/src/core/file"
 	"go-rest-setup/src/http/routes"
 	config "go-rest-setup/src/lib/configs"
@@ -16,11 +17,13 @@ func main() {
 	redis := config.InitRedis()
 	config.InitS3()
 
+	audit.RegisterAuditLogCallbacks(db)
+
 	app := fiber.New()
 
 	routes.RegisterBackofficeRoutes(app, appbackoffice.NewBackofficeContainer(db, redis))
 	routes.RegisterAuthRoutes(app, auth.NewController(auth.NewService(db, redis)))
-	routes.RegisterFileRoute(app, file.NewController(file.NewFileService()))
+	routes.RegisterFileRoute(app, file.NewController(file.NewFileService(db)))
 
 	if err := app.Listen(":" + config.EnvModule().Server.Port); err != nil {
 		log.Fatalf("server failed: %v", err)
