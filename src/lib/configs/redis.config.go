@@ -11,14 +11,16 @@ import (
 )
 
 func InitRedis() *redis.Client {
-	db, err := strconv.Atoi(EnvModule().Redis.Database)
+	c := EnvModule()
+
+	db, err := strconv.Atoi(c.Redis.Database)
 	if err != nil {
 		db = 0
 	}
 
 	client := redis.NewClient(&redis.Options{
-		Addr:     fmt.Sprintf("%s:%s", EnvModule().Redis.Host, EnvModule().Redis.Port),
-		Password: EnvModule().Redis.Password,
+		Addr:     fmt.Sprintf("%s:%s", c.Redis.Host, c.Redis.Port),
+		Password: c.Redis.Password,
 		DB:       db,
 	})
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

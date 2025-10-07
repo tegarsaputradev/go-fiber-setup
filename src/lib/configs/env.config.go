@@ -26,6 +26,14 @@ type RedisConfig struct {
 	Database string
 }
 
+type S3Config struct {
+	AccessKeyID     string
+	SecretAccessKey string
+	Region          string
+	Bucket          string
+	URL             string
+}
+
 type JwtConfig struct {
 	Secret string
 }
@@ -35,6 +43,7 @@ type Config struct {
 	Database DatabaseConfig
 	Redis    RedisConfig
 	JWT      JwtConfig
+	S3       S3Config
 }
 
 var (
@@ -62,6 +71,14 @@ func EnvModule() *Config {
 				Port:     getEnv("REDIS_PORT", "6379"),
 				Password: getEnv("REDIS_PASSWORD", ""),
 				Database: getEnv("REDIS_DATABASE", "0"),
+			},
+
+			S3: S3Config{
+				AccessKeyID:     getEnv("ACCESS_KEY_ID", "secret"),
+				SecretAccessKey: getEnv("SECRET_ACCESS_KEY", "secret"),
+				Region:          getEnv("AWS_S3_REGION", "southeast-1"),
+				Bucket:          getEnv("AWS_DEFAULT_S3_BUCKET", "bucketDev"),
+				URL:             getEnv("AWS_DEFAULT_S3_URL", "http://localhost:4566"),
 			},
 			JWT: JwtConfig{
 				Secret: getEnv("JWT_SECRET", "ggwp1234"),
