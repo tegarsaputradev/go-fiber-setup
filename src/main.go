@@ -1,6 +1,7 @@
 package main
 
 import (
+	apppkg "go-rest-setup/src/app"
 	appbackoffice "go-rest-setup/src/app-backoffice"
 	"go-rest-setup/src/auth"
 	"go-rest-setup/src/core/audit"
@@ -21,8 +22,11 @@ func main() {
 
 	app := fiber.New()
 
+	appController := apppkg.NewController(apppkg.NewService())
+	apppkg.RegisterRoutes(app, appController)
+
 	routes.RegisterBackofficeRoutes(app, appbackoffice.NewBackofficeContainer(db, redis))
-	routes.RegisterAuthRoutes(app, auth.NewController(auth.NewService(db, redis)))
+	routes.RegisterAuthRoutes(app, auth.NewController(auth.NewService(db, redis)), redis)
 	routes.RegisterFileRoute(app, file.NewController(file.NewFileService(db)))
 
 	if err := app.Listen(":" + config.EnvModule().Server.Port); err != nil {

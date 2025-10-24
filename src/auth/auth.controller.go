@@ -3,6 +3,7 @@ package auth
 import (
 	authDto "go-rest-setup/src/auth/dto"
 	"go-rest-setup/src/database/models"
+	"go-rest-setup/src/http/middleware"
 	helper "go-rest-setup/src/lib/helpers"
 
 	"github.com/gofiber/fiber/v2"
@@ -47,11 +48,15 @@ func (s *AuthController) Login(ctx *fiber.Ctx) error {
 }
 
 func (s *AuthController) GetMe(ctx *fiber.Ctx) error {
-	userID, err := ctx.ParamsInt("id")
-	if err != nil || userID <= 0 {
-		return helper.Error(ctx, fiber.StatusBadRequest, map[string]string{"id": "invalid user ID"})
+
+	sessionUser, errSession := middleware.GetSessionUser(ctx)
+	if errSession != nil {
+		return helper.Error(ctx, fiber.StatusUnauthorized, map[string]string{
+			"session": errSession.Error(),
+		})
 	}
-	user, errGet := s.authService.GetMe(uint(userID))
+
+	user, errGet := s.authService.GetMe(sessionUser)
 	if errGet != nil {
 		if errGet.Error() == "session not found or already loged out" {
 			return helper.Error(ctx, fiber.StatusNotFound, map[string]string{"session": "session not found or already loged out"})
@@ -59,6 +64,29 @@ func (s *AuthController) GetMe(ctx *fiber.Ctx) error {
 		return helper.Error(ctx, fiber.StatusInternalServerError, errGet)
 	}
 	return helper.Success(ctx, user, fiber.StatusOK)
+}
+
+func (s *AuthController) Register(ctx *fiber.Ctx) error {
+	var payload authDto.RegisterDto
+
+	if err := ctx.BodyParser(&payload); err != nil {
+		return helper.Error(ctx, fiber.StatusUnprocessableEntity, map[string]string{"body": "invalid request"})
+	}
+
+	if err := helper.Validate.Struct(&payload); err != nil {
+		return helper.Error(ctx, fiber.StatusUnprocessableEntity, helper.ParseValidationError(err))
+	}
+
+	createdUser, err := s.authService.Register(payload)
+	if err != nil {
+		if dupErr := helper.ParseDuplicateError(err); dupErr != nil {
+			return helper.Error(ctx, fiber.StatusUnprocessableEntity, dupErr)
+		}
+		return helper.Error(ctx, fiber.StatusInternalServerError, nil)
+	}
+
+	return helper.Success(ctx, createdUser, fiber.StatusCreated)
+
 }
 
 func (s *AuthController) Logout(ctx *fiber.Ctx) error {

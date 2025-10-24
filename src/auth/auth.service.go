@@ -6,6 +6,7 @@ import (
 	"fmt"
 	authDto "go-rest-setup/src/auth/dto"
 	"go-rest-setup/src/database/models"
+	"go-rest-setup/src/http/middleware"
 	config "go-rest-setup/src/lib/configs"
 	"time"
 
@@ -18,6 +19,7 @@ import (
 type JwtClaims struct {
 	UserID   uint   `json:"user_id"`
 	Username string `json:"username"`
+	Email    string `json:"email"`
 	jwt.RegisteredClaims
 }
 
@@ -47,7 +49,8 @@ func (s *AuthService) Login(payload authDto.LoginUsernameDto) (string, *models.U
 
 	claims := JwtClaims{
 		UserID:   user.ID,
-		Username: payload.Username,
+		Username: user.Username,
+		Email:    user.Email,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(24 * time.Hour)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
@@ -72,9 +75,26 @@ func (s *AuthService) Login(payload authDto.LoginUsernameDto) (string, *models.U
 
 }
 
-func (s *AuthService) GetMe(id uint) (*models.User, error) {
+func (s *AuthService) Register(payload authDto.RegisterDto) (*models.User, error) {
+
+	user := &models.User{
+		Name:     payload.Name,
+		Email:    payload.Email,
+		Username: payload.Username,
+		Password: payload.Password,
+	}
+
+	if err := s.DB.Create(user).Error; err != nil {
+		return nil, err
+	}
+
+	return user, nil
+
+}
+
+func (s *AuthService) GetMe(sessionUser *middleware.UserSession) (*models.User, error) {
 	ctx := context.Background()
-	key := fmt.Sprintf(`AUTH:%d`, id)
+	key := fmt.Sprintf(`AUTH:%d`, sessionUser.UserID)
 
 	userSession, err := s.redis.Get(ctx, key).Result()
 	if err != nil || userSession == "" {
@@ -83,7 +103,7 @@ func (s *AuthService) GetMe(id uint) (*models.User, error) {
 
 	var user models.User
 
-	if err := s.DB.Where("id = ?", id).First(&user).Error; err != nil {
+	if err := s.DB.Where("id = ?", sessionUser.UserID).First(&user).Error; err != nil {
 		return nil, fmt.Errorf("session is anonymous")
 	}
 
